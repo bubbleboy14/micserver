@@ -1,6 +1,6 @@
 import rel, optparse, datetime
 rel.override()
-from dez.network.server import SocketDaemon
+from dez.network import SocketDaemon
 from dez.xml_tools import XMLNode
 from game import Game
 
@@ -84,6 +84,8 @@ class MICSConnection(object):
                     self.notice("not your move")
             elif data.name == 'timeout':
                 self.game.timeout(self)
+            elif data.name == 'chat':
+                self.game.opponent(self).chat(self.name, data.children[0])
             elif data.name == 'draw':
                 self.game.draw(self)
             elif data.name == 'forfeit':
@@ -100,10 +102,11 @@ class MICSConnection(object):
             self.seek(data.attr('initial'), data.attr('increment'))
         elif data.name == 'list':
             x = XMLNode('list')
-            for initial, increment in self.waiting:
+            for (initial, increment), player in self.waiting.items():
                 s = XMLNode('seek')
                 s.add_attribute('initial',initial)
                 s.add_attribute('increment',increment)
+                s.add_attribute('name',player.name)
                 x.add_child(s)
             self.send(x)
         else:
@@ -140,6 +143,12 @@ class MICSConnection(object):
         x = XMLNode('time')
         x.add_attribute('white',w)
         x.add_attribute('black',b)
+        self.send(x)
+
+    def chat(self, name, msg):
+        x = XMLNode('chat')
+        x.add_attribute('name',name)
+        x.add_child(msg)
         self.send(x)
 
     def send(self, data):
