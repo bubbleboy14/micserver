@@ -1,16 +1,32 @@
-from chesstools import Board, Move, List, Timer
+from chesstools import Board, Move, List, Timer, TimeLockTimer
+
+timer = {True: TimeLockTimer, False: Timer}
 
 class Game(object):
-    def __init__(self, p1, p2, initial, increment):
+    def __init__(self, p1, p2, initial, increment, timelock):
         self.white = p1
         self.black = p2
         self.initial = initial
         self.increment = increment
+        self.timelock = timelock
         self.white.start_game(self, 'white')
         self.black.start_game(self, 'black')
         self.moves = List()
         self.board = Board()
-        self.timer = Timer(initial, increment)
+        self.timer = timer[timelock](initial, increment)
+
+    def send_move(self, player, move, confirmation):
+        self.opponent(player).send(move)
+        if self.timelock:
+            self.timer.move_sent()
+        player.send(confirmation)
+        gameover = move.attr('gameover')
+        if gameover and self.check() == gameover:
+            self.end(player, gameover)
+
+    def move_received(self):
+        if self.timelock:
+            self.timer.move_received()
 
     def end(self, player, reason):
         if reason in ['agreement','stalemate','50-move rule','repetition']:

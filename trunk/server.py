@@ -5,15 +5,16 @@ from dez.xml_tools import XMLNode
 from game import Game
 
 class MICS(object):
-    def __init__(self, port, output, verbose):
+    def __init__(self, port, output, timelock, verbose):
         self.output = open(output,'a')
+        self.timelock = timelock
         self.verbose = verbose
         self.log("running MICS server on port %s"%port)
         self.server = SocketDaemon('', port, self.__new_conn)
         self.waiting = {}
 
     def __new_conn(self, conn):
-        c = MICSConnection(conn, self.waiting, self.log)
+        c = MICSConnection(conn, self.waiting, self.log, self.timelock)
 
     def log(self, data):
         if self.verbose:
@@ -26,12 +27,13 @@ class MICS(object):
 
 class MICSConnection(object):
     id = 0
-    def __init__(self, conn, waiting, log):
+    def __init__(self, conn, waiting, log, timelock):
         MICSConnection.id += 1
         self.id = MICSConnection.id
         self.conn = conn
         self.waiting = waiting
         self._log = log
+        self.timelock = timelock
         self.reset_vars()
         self.conn.set_close_cb(self.__closed)
         self.conn.set_rmode_xml(self.recv)
@@ -58,7 +60,7 @@ class MICSConnection(object):
         if increment is None: increment = 0
         g = (initial, increment)
         if g in self.waiting:
-            Game(self.waiting[g], self, initial, increment)
+            Game(self.waiting[g], self, initial, increment, self.timelock)
         else:
             self.waiting[g] = self
 
@@ -73,15 +75,13 @@ class MICSConnection(object):
             if data.name == 'move':
                 if self.game.turn() == self.color:
                     if self.game.move(data.attr('from'), data.attr('to'), data.attr('promotion')):
-                        self.game.opponent(self).send(data)
-                        self.send(XMLNode('confirm'))
-                        gameover = data.attr('gameover')
-                        if gameover and self.game.check() == gameover:
-                            self.game.end(self, gameover)
+                        self.game.send_move(self, data, XMLNode('confirm'))
                     else:
                         self.notice("invalid move")
                 else:
                     self.notice("not your move")
+            elif data.name == 'received':
+                self.game.move_received()
             elif data.name == 'timeout':
                 self.game.timeout(self)
             elif data.name == 'chat':
@@ -122,6 +122,7 @@ class MICSConnection(object):
         x.add_attribute('increment', game.increment)
         x.add_attribute('white', game.white.name)
         x.add_attribute('black', game.black.name)
+        x.add_attribute('timelock', self.timelock and '1' or '0')
         self.send(x)
 
     def notice(self, data):
@@ -157,9 +158,10 @@ class MICSConnection(object):
             self.conn.write(str(data))
 
 if __name__ == "__main__":
-    parser = optparse.OptionParser('server [-p PORT] [-o OUTPUT] [-v]')
+    parser = optparse.OptionParser('server [-p PORT] [-o OUTPUT] [-t] [-v]')
     parser.add_option('-p', '--port', dest='port', default='7777', help='run server on this port. default: 7777')
     parser.add_option('-o', '--output', dest='output', default='output.log', help='set output log')
+    parser.add_option('-t', '--timelock', action='store_true', dest='timelock', default=False, help='enable TimeLock timekeeping. compensates for latency, but requires trusted clients.')
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose', default=False, help='turn this on to learn the MICS protocol!')
     ops = parser.parse_args()[0]
     try:
@@ -167,5 +169,5 @@ if __name__ == "__main__":
     except:
         print "Invalid port: %s"%ops.port
     else:
-        server = MICS(port, ops.output, ops.verbose)
+        server = MICS(port, ops.output, ops.timelock, ops.verbose)
         server.start()
