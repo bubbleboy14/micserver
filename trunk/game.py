@@ -20,9 +20,10 @@ class Game(object):
         if self.timelock:
             self.timer.move_sent()
         player.send(confirmation)
-        gameover = move.attr('gameover')
-        if gameover and self.check() == gameover:
-            self.end(player, gameover)
+        if move.attr('gameover'):
+            result = self.check()
+            if result:
+                self.end(player, result)
 
     def move_received(self):
         if self.timelock:
