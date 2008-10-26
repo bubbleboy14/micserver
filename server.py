@@ -56,8 +56,11 @@ class MICSConnection(object):
                 del self.waiting[key]
 
     def seek(self, initial=None, increment=None):
-        if initial is None: initial = 300
-        if increment is None: increment = 0
+        try:
+            initial = int(initial)
+            increment = int(increment)
+        except:
+            return self.notice("invalid seek")
         g = (initial, increment)
         if g in self.waiting:
             Game(self.waiting[g], self, initial, increment, self.timelock)
