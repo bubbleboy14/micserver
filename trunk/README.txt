@@ -1,7 +1,7 @@
 Mario's Internet Chess Server
    author: Mario Balibrera
     email: mario.balibrera@gmail.com
-  website: mariobalibrera.com
+  website: mariobalibrera.com/mics
 
 To run this server, simply type "python server.py".
 
