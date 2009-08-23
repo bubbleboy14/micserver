@@ -55,15 +55,15 @@ class MICSConnection(object):
             if val is self:
                 del self.waiting[key]
 
-    def seek(self, initial=None, increment=None):
+    def seek(self, initial=None, increment=None, variant="standard"):
         try:
             initial = int(initial)
             increment = int(increment)
         except:
             return self.notice("invalid seek")
-        g = (initial, increment)
+        g = (initial, increment, variant)
         if g in self.waiting:
-            Game(self.waiting[g], self, initial, increment, self.timelock)
+            Game(self.waiting[g], self, initial, increment, variant, self.timelock)
         else:
             self.waiting[g] = self
 
@@ -102,13 +102,14 @@ class MICSConnection(object):
         elif data.name == 'seek':
             self.notice("finding game...")
             self.name = data.attr('name')
-            self.seek(data.attr('initial'), data.attr('increment'))
+            self.seek(data.attr('initial'), data.attr('increment'), data.attr('variant') or "standard")
         elif data.name == 'list':
             x = XMLNode('list')
-            for (initial, increment), player in self.waiting.items():
+            for (initial, increment, variant), player in self.waiting.items():
                 s = XMLNode('seek')
                 s.add_attribute('initial',initial)
                 s.add_attribute('increment',increment)
+                s.add_attribute('variant',variant)
                 s.add_attribute('name',player.name)
                 x.add_child(s)
             self.send(x)
@@ -123,6 +124,8 @@ class MICSConnection(object):
         x.add_attribute('color', self.color)
         x.add_attribute('initial', game.initial)
         x.add_attribute('increment', game.increment)
+        if game.variant == "960":
+            x.add_attribute('lineup', game.lineup)
         x.add_attribute('white', game.white.name)
         x.add_attribute('black', game.black.name)
         x.add_attribute('timelock', self.timelock and '1' or '0')
