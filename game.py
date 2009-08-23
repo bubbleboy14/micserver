@@ -1,19 +1,22 @@
 from chesstools import Board, Move, List, Timer, TimeLockTimer
+from chesstools.piece import PIECE_TO_LETTER
 
 timer = {True: TimeLockTimer, False: Timer}
 
 class Game(object):
-    def __init__(self, p1, p2, initial, increment, timelock):
+    def __init__(self, p1, p2, initial, increment, variant, timelock):
         self.white = p1
         self.black = p2
         self.initial = initial
         self.increment = increment
+        self.variant = variant
         self.timelock = timelock
+        self.moves = List()
+        self.board = Board(variant=variant)
+        self.lineup = "".join([PIECE_TO_LETTER[piece]["white"] for piece in self.board.LINEUP])
+        self.timer = timer[timelock](initial, increment)
         self.white.start_game(self, 'white')
         self.black.start_game(self, 'black')
-        self.moves = List()
-        self.board = Board()
-        self.timer = timer[timelock](initial, increment)
 
     def send_move(self, player, move, confirmation):
         self.opponent(player).send(move)
