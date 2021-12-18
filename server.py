@@ -18,7 +18,7 @@ class MICS(object):
 
     def log(self, data):
         if self.verbose:
-            print data
+            print(data)
         self.output.write('[%s] %s\n'%(datetime.datetime.now(), data))
         self.output.flush()
 
@@ -51,7 +51,7 @@ class MICSConnection(object):
         self._log("[conn %s | active = %s]: %s"%(self.id, self.active, data))
 
     def retract_seeks(self):
-        for key, val in self.waiting.copy().items():
+        for key, val in list(self.waiting.copy().items()):
             if val is self:
                 del self.waiting[key]
 
@@ -105,7 +105,7 @@ class MICSConnection(object):
             self.seek(data.attr('initial'), data.attr('increment'), data.attr('variant') or "standard")
         elif data.name == 'list':
             x = XMLNode('list')
-            for (initial, increment, variant), player in self.waiting.items():
+            for (initial, increment, variant), player in list(self.waiting.items()):
                 s = XMLNode('seek')
                 s.add_attribute('initial',initial)
                 s.add_attribute('increment',increment)
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     try:
         port = int(ops.port)
     except:
-        print "Invalid port: %s"%ops.port
+        print("Invalid port: %s"%ops.port)
     else:
         server = MICS(port, ops.output, ops.timelock, ops.verbose)
         server.start()
