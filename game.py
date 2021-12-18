@@ -91,4 +91,4 @@ class Game(object):
         return str(self.moves)
 
     def render(self):
-        print self.get_fen() + '\n' + self.get_board() + '\n' + self.get_moves()
+        print(self.get_fen() + '\n' + self.get_board() + '\n' + self.get_moves())
